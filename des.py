@@ -132,13 +132,6 @@ SBOX = [
   ]
 ]
 
-def expansion(block: Bitarray) -> Bitarray:
-  assert len(block) == 32
-  res = Bitarray(size=48)
-  for i, p in enumerate(EXPANSION):
-    res[i] = block[p]
-  return res
-
 def apply_permutation(block: Bitarray, perm: list) -> Bitarray:
   res = Bitarray(size=len(perm))
   for i, p in enumerate(perm):
@@ -170,9 +163,7 @@ def F(hblock: Bitarray, roundkey: Bitarray) -> Bitarray:
   assert len(hblock) == 32
   assert len(roundkey) == 48
 
-  #print(f"Feistel function: hblock: {hblock} roundkey: {roundkey}")
-
-  xored = expansion(hblock) ^ roundkey
+  xored = apply_permutation(hblock, EXPANSION) ^ roundkey
 
   sboxed = Bitarray(size=32)
   for i, sbox in enumerate(SBOX):
