@@ -7,6 +7,9 @@ import random
 from bitarray import Bitarray
 from typing import List
 
+ENCRYPT = 0
+DECRYPT = 1
+
 # Initial permutation.
 IP = [
   57, 49, 41, 33, 25, 17,  9,  1,
@@ -176,7 +179,7 @@ def F(hblock: Bitarray, roundkey: Bitarray) -> Bitarray:
 
   return apply_permutation(sboxed, PBOX)
 
-def DES_encrypt_block(block: bytes, key: bytes) -> bytes:
+def DES_block(mode: int, block: bytes, key: bytes) -> bytes:
   assert len(block) == 8
   assert len(key) == 8
 
@@ -184,6 +187,8 @@ def DES_encrypt_block(block: bytes, key: bytes) -> bytes:
 
   # Generate round keys.
   round_keys = generate_round_keys(key)
+  if mode == DECRYPT:
+    round_keys = round_keys[::-1]
 
   # Initial permutation.
   block = apply_permutation(block, IP)
@@ -192,27 +197,6 @@ def DES_encrypt_block(block: bytes, key: bytes) -> bytes:
   left, right = block[63:32], block[31:0]
 
   for round_key in round_keys:
-    left, right = right, F(right, round_key) ^ left
-
-  # Final permutation.
-  return apply_permutation(right + left, FP).bytes()
-
-def DES_decrypt_block(block: bytes, key: bytes) -> bytes:
-  assert len(block) == 8
-  assert len(key) == 8
-
-  block, key = Bitarray(block), Bitarray(key)
-
-  # Generate round keys.
-  round_keys = generate_round_keys(key)
-
-  # Initial permutation.
-  block = apply_permutation(block, IP)
-
-  # Split block in half.
-  left, right = block[63:32], block[31:0]
-
-  for round_key in round_keys[::-1]:
     left, right = right, F(right, round_key) ^ left
 
   # Final permutation.
@@ -229,7 +213,7 @@ def DES_encrypt(message: bytes, key: bytes) -> bytes:
   # Divide in blocks and encrypt.
   result = b""
   for i in range(0, len(message), 8):
-    result += DES_encrypt_block(message[i:i + 8], key)
+    result += DES_block(ENCRYPT, message[i:i + 8], key)
 
   return result
 
@@ -240,7 +224,7 @@ def DES_decrypt(message: bytes, key: bytes) -> bytes:
   # Divide in blocks and decrypt.
   result = bytearray()
   for i in range(0, len(message), 8):
-    result += DES_decrypt_block(message[i:i + 8], key)
+    result += DES_block(DECRYPT, message[i:i + 8], key)
 
   # Remove padding.
   while result[-1] == 0:
